@@ -1,0 +1,55 @@
+class DividendVelocityEngine:
+    def __init__(self, ticker, share_price, annual_yield, weekly_contribution):
+        self.ticker = ticker
+        self.share_price = share_price
+        self.annual_yield = annual_yield / 100.0
+        self.weekly_contribution = weekly_contribution
+        
+    def simulate_growth(self, target_years=3):
+        weeks = target_years * 52
+        shares_owned = 0.0
+        total_cash_invested = 0.0
+        velocity_reached_week = None
+        
+        for week in range(1, weeks + 1):
+            # 1. Inject weekly capital
+            shares_from_contribution = self.weekly_contribution / self.share_price
+            shares_owned += shares_from_contribution
+            total_cash_invested += self.weekly_contribution
+            
+            # 2. Accrue and distribute weekly slice of dividend
+            weekly_dividend_per_share = (self.share_price * self.annual_yield) / 52
+            total_dividend_payout = shares_owned * weekly_dividend_per_share
+            
+            # DRIP (Reinvest dividend into fractional/whole shares)
+            shares_from_drip = total_dividend_payout / self.share_price
+            shares_owned += shares_from_drip
+            
+            # 3. Check for Dividend Velocity (Weekly dividend >= Cost of 1 Share)
+            if total_dividend_payout >= self.share_price and velocity_reached_week is None:
+                velocity_reached_week = week
+                
+        portfolio_value = shares_owned * self.share_price
+        total_dividends_earned = portfolio_value - total_cash_invested
+        
+        return {
+            "Total Shares": round(shares_owned, 2),
+            "Portfolio Value": f"${portfolio_value:,.2f}",
+            "Total Out-of-Pocket Invested": f"${total_cash_invested:,.2f}",
+            "Total Dividends Reinvested": f"${total_dividends_earned:,.2f}",
+            "Weekly Dividend Stream": f"${(shares_owned * ((self.share_price * self.annual_yield) / 52)):,.2f}",
+            "Velocity Milestone": f"Achieved in Week {velocity_reached_week}" if velocity_reached_week else "Velocity point requires more time or capital."
+        }
+
+# --- RUN ENGINE SIMULATION ---
+# Example configuration based on a $500/week core allocation strategy
+engine = DividendVelocityEngine(
+    ticker="Fsol/Feth Blend", 
+    share_price=50.00, 
+    annual_yield=12.0, 
+    weekly_contribution=500.00
+)
+
+metrics = engine.simulate_growth(target_years=3)
+for key, value in metrics.items():
+    print(f"{key}: {value}")
